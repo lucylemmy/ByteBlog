@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2ad4e0"/>
+      <stop offset="1" stop-color="#16a3ad"/>
+    </linearGradient>
+  </defs>
+  <!-- Notebook -->
+  <rect x="36" y="44" width="136" height="168" rx="16" stroke="#ffffff" stroke-width="12"/>
+  <circle cx="68" cy="44" r="6" fill="#ffffff"/>
+  <circle cx="96" cy="44" r="6" fill="#ffffff"/>
+  <circle cx="124" cy="44" r="6" fill="#ffffff"/>
+  <rect x="60" y="96" width="80" height="10" rx="5" fill="#ffffff" opacity="0.9"/>
+  <rect x="60" y="124" width="64" height="10" rx="5" fill="#ffffff" opacity="0.8"/>
+  <rect x="60" y="152" width="48" height="10" rx="5" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Pencil -->
+  <g transform="rotate(45 176 152)">
+    <rect x="150" y="120" width="20" height="96" rx="8" fill="url(#g)"/>
+    <rect x="150" y="120" width="20" height="18" fill="#0b1623" opacity=".25"/>
+    <polygon points="160,216 170,236 150,236" fill="#13c2cc"/>
+  </g>
+</svg>
+
