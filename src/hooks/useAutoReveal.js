@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 
-// Adds .is-visible to any element with [data-reveal] when it enters the viewport
 export function useAutoReveal(deps = []) {
 	useEffect(() => {
 		const elements = Array.from(document.querySelectorAll('[data-reveal]'))
@@ -20,7 +19,7 @@ export function useAutoReveal(deps = []) {
 
 		for (const el of elements) observer.observe(el)
 		return () => observer.disconnect()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+	
 	}, deps)
 }
 

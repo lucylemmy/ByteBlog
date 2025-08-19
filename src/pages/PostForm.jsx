@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { usePosts } from '../services/usePosts.js'
 import { upsertPost, readPostById } from '../services/postStore.js'
 import { formatContentToHtml, estimateReadingTime } from '../utils/formatContent.js'
+import { uploadImage } from '../services/upload.js'
 
 export default function PostForm() {
 	const { id } = useParams()
@@ -31,15 +32,17 @@ export default function PostForm() {
 
 	const isValid = useMemo(() => title.trim().length >= 4 && content.trim().length >= 20, [title, content])
 
-	function onUploadFile(e) {
+	async function onUploadFile(e) {
 		const file = e.target.files?.[0]
 		if (!file) return
-		const reader = new FileReader()
-		reader.onload = ev => {
-			const url = ev.target?.result
-			if (typeof url === 'string') setCoverUrl(url)
+		try {
+			const { url } = await uploadImage(file)
+			setCoverUrl(url)
+		} catch (err) {
+			alert(err.message || 'Failed to upload image')
+		} finally {
+			if (fileInputRef.current) fileInputRef.current.value = ''
 		}
-		reader.readAsDataURL(file)
 	}
 
 	function onSubmit(e) {

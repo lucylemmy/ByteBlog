@@ -1,6 +1,3 @@
-// Lightweight Markdown-ish formatter for posts
-// Supports: headings (#, ##, ###), bold **text**, inline code `code`,
-// fenced code blocks ``` ... ```, and paragraph breaks
 
 function escapeHtml(value) {
 	return value
