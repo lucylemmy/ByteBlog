@@ -22,5 +22,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Tests/coverage
 coverage/
+
