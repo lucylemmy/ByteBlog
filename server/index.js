@@ -109,6 +109,8 @@ function authMiddleware(req, res, next) {
 	}
 }
 
+app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
 app.post('/api/auth/signup', async (req, res) => {
 	try {
 		const { name, email, password } = req.body || {}
