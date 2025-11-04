@@ -29,7 +29,7 @@ if (!MONGODB_URI) {
 // Schemas & Models
 const userSchema = new mongoose.Schema(
 	{
-		name: { type: String, required: true, trim: true },
+		username: { type: String, required: true, trim: true },
 		email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 		passwordHash: { type: String, required: true },
 	},
@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema(
 userSchema.set('toJSON', {
 	transform: (_, ret) => {
 		ret.id = ret._id.toString()
+		if (!ret.username && ret.name) {
+			ret.username = ret.name
+			delete ret.name
+		}
 		delete ret._id
 		delete ret.__v
 		delete ret.passwordHash
@@ -49,10 +53,10 @@ const User = mongoose.models.User || mongoose.model('User', userSchema)
 const postSchema = new mongoose.Schema(
 	{
 		title: { type: String, required: true, trim: true },
-		summary: { type: String, trim: true },
+		subtitle: { type: String, trim: true },
 		content: { type: String, required: true },
+		imageUrl: { type: String, default: null },
 		tags: [{ type: String }],
-		coverUrl: { type: String, default: null },
 		author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 	},
 	{ timestamps: true }
@@ -60,6 +64,14 @@ const postSchema = new mongoose.Schema(
 postSchema.set('toJSON', {
 	transform: (_, ret) => {
 		ret.id = ret._id.toString()
+		if (!ret.subtitle && ret.summary !== undefined) {
+			ret.subtitle = ret.summary
+			delete ret.summary
+		}
+		if (!ret.imageUrl && ret.coverUrl !== undefined) {
+			ret.imageUrl = ret.coverUrl
+			delete ret.coverUrl
+		}
 		delete ret._id
 		delete ret.__v
 		return ret
@@ -93,7 +105,8 @@ const upload = multer({
 
 function signToken(user) {
 	const id = user.id || user._id?.toString()
-	return jwt.sign({ id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' })
+	const username = user.username || user.name
+	return jwt.sign({ id, email: user.email, username }, JWT_SECRET, { expiresIn: '7d' })
 }
 
 function authMiddleware(req, res, next) {
@@ -113,12 +126,17 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 app.post('/api/auth/signup', async (req, res) => {
 	try {
-		const { name, email, password } = req.body || {}
-		if (!name || !email || !password) return res.status(400).json({ error: 'Missing fields' })
+		const { username, name, email, password } = req.body || {}
+		const finalUsername = username || name
+		if (!finalUsername || !email || !password) return res.status(400).json({ error: 'Missing fields' })
 		const existing = await User.findOne({ email: String(email).toLowerCase() })
 		if (existing) return res.status(409).json({ error: 'Email already registered' })
 		const passwordHash = await bcrypt.hash(password, 10)
-		const userDoc = await User.create({ name: String(name), email: String(email).toLowerCase(), passwordHash })
+		const userDoc = await User.create({
+			username: String(finalUsername),
+			email: String(email).toLowerCase(),
+			passwordHash,
+		})
 		const token = signToken(userDoc)
 		return res.json({ token, user: userDoc.toJSON() })
 	} catch (err) {
@@ -126,7 +144,7 @@ app.post('/api/auth/signup', async (req, res) => {
 	}
 })
 
-app.post('/api/auth/signin', async (req, res) => {
+async function handleLogin(req, res) {
 	try {
 		const { email, password } = req.body || {}
 		if (!email || !password) return res.status(400).json({ error: 'Missing fields' })
@@ -137,9 +155,14 @@ app.post('/api/auth/signin', async (req, res) => {
 		const token = signToken(userDoc)
 		return res.json({ token, user: userDoc.toJSON() })
 	} catch (err) {
-		return res.status(500).json({ error: 'Sign in failed' })
+		return res.status(500).json({ error: 'Login failed' })
 	}
-})
+}
+
+app.post('/api/auth/login', handleLogin)
+app.post('/api/auth/signin', handleLogin)
+
+app.post('/api/auth/logout', authMiddleware, (_req, res) => res.json({ ok: true }))
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
 	const userDoc = await User.findById(req.user.id)
@@ -151,16 +174,53 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 app.get('/api/posts', async (req, res) => {
 	const filter = {}
 	if (req.query.tag) filter.tags = req.query.tag
-	const posts = await Post.find(filter).sort({ updatedAt: -1 }).lean()
-	const shaped = posts.map(p => ({ ...p, id: p._id.toString(), _id: undefined, __v: undefined }))
+	const posts = await Post.find(filter)
+		.sort({ updatedAt: -1 })
+		.populate('author', 'username email')
+		.lean()
+	const shaped = posts.map(p => ({
+		id: p._id.toString(),
+		title: p.title,
+		subtitle: p.subtitle ?? p.summary ?? '',
+		content: p.content,
+		imageUrl: p.imageUrl ?? p.coverUrl ?? null,
+		tags: p.tags || [],
+		author: p.author
+			? {
+				id: p.author._id?.toString() ?? p.author.id,
+				username: p.author.username,
+				email: p.author.email,
+			}
+			: null,
+		createdAt: p.createdAt,
+		updatedAt: p.updatedAt,
+	}))
 	return res.json({ posts: shaped })
 })
 
 app.get('/api/posts/:id', async (req, res) => {
 	try {
-		const p = await Post.findById(req.params.id).lean()
+		const p = await Post.findById(req.params.id).populate('author', 'username email').lean()
 		if (!p) return res.status(404).json({ error: 'Not found' })
-		return res.json({ post: { ...p, id: p._id.toString(), _id: undefined, __v: undefined } })
+		return res.json({
+			post: {
+				id: p._id.toString(),
+				title: p.title,
+				subtitle: p.subtitle ?? p.summary ?? '',
+				content: p.content,
+				imageUrl: p.imageUrl ?? p.coverUrl ?? null,
+				tags: p.tags || [],
+				author: p.author
+					? {
+						id: p.author._id?.toString() ?? p.author.id,
+						username: p.author.username,
+						email: p.author.email,
+					}
+					: null,
+				createdAt: p.createdAt,
+				updatedAt: p.updatedAt,
+			},
+		})
 	} catch {
 		return res.status(400).json({ error: 'Invalid id' })
 	}
@@ -168,14 +228,21 @@ app.get('/api/posts/:id', async (req, res) => {
 
 app.post('/api/posts', authMiddleware, async (req, res) => {
 	try {
-		const { title, summary, content, tags, coverUrl } = req.body || {}
+		const { title, subtitle, summary, content, tags, imageUrl, coverUrl } = req.body || {}
 		if (!title || !content) return res.status(400).json({ error: 'Missing fields' })
 		const created = await Post.create({
 			title: String(title),
-			summary: summary ? String(summary) : '',
+			subtitle: subtitle ? String(subtitle) : summary ? String(summary) : '',
 			content: String(content),
-			tags: Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : []),
-			coverUrl: coverUrl || null,
+			tags: Array.isArray(tags)
+				? tags
+				: typeof tags === 'string'
+				? tags
+						.split(',')
+						.map(t => t.trim())
+						.filter(Boolean)
+				: [],
+			imageUrl: imageUrl || coverUrl || null,
 			author: req.user.id,
 		})
 		return res.status(201).json({ post: created.toJSON() })
@@ -189,12 +256,22 @@ app.put('/api/posts/:id', authMiddleware, async (req, res) => {
 		const post = await Post.findById(req.params.id)
 		if (!post) return res.status(404).json({ error: 'Not found' })
 		if (post.author.toString() !== req.user.id) return res.status(403).json({ error: 'Forbidden' })
-		const { title, summary, content, tags, coverUrl } = req.body || {}
+		const { title, subtitle, summary, content, tags, imageUrl, coverUrl } = req.body || {}
 		if (title !== undefined) post.title = String(title)
-		if (summary !== undefined) post.summary = String(summary)
+		if (subtitle !== undefined || summary !== undefined)
+			post.subtitle = subtitle !== undefined ? String(subtitle) : String(summary)
 		if (content !== undefined) post.content = String(content)
-		if (tags !== undefined) post.tags = Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : [])
-		if (coverUrl !== undefined) post.coverUrl = coverUrl || null
+		if (tags !== undefined)
+			post.tags = Array.isArray(tags)
+				? tags
+				: typeof tags === 'string'
+				? tags
+						.split(',')
+						.map(t => t.trim())
+						.filter(Boolean)
+				: []
+		if (imageUrl !== undefined || coverUrl !== undefined)
+			post.imageUrl = imageUrl !== undefined ? imageUrl || null : coverUrl || null
 		await post.save()
 		return res.json({ post: post.toJSON() })
 	} catch (err) {

@@ -31,15 +31,15 @@ export function AuthProvider({ children }) {
 		return user
 	}
 
-	async function signUp(name, email, password) {
+	async function signUp(username, email, password) {
 		setError(null)
-		const user = await apiSignUp(name, email, password)
+		const user = await apiSignUp(username, email, password)
 		setUser(user)
 		return user
 	}
 
-	function signOut() {
-		apiSignOut()
+	async function signOut() {
+		await apiSignOut()
 		setUser(null)
 	}
 

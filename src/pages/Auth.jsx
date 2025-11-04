@@ -9,7 +9,7 @@ export default function Auth() {
 
     const initialMode = useMemo(() => (location.pathname.includes('signup') ? 'signup' : 'signin'), [location.pathname])
     const [mode, setMode] = useState(initialMode)
-    const [name, setName] = useState('')
+    const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [submitting, setSubmitting] = useState(false)
@@ -34,10 +34,11 @@ export default function Auth() {
         setError?.(null)
         setSubmitting(true)
         try {
+            const trimmedEmail = email.trim()
             if (mode === 'signin') {
-                await signIn(email, password)
+                await signIn(trimmedEmail, password)
             } else {
-                await signUp(name, email, password)
+                await signUp(username.trim(), trimmedEmail, password)
             }
             navigate('/')
         } catch (e) {
@@ -70,8 +71,8 @@ export default function Auth() {
             <form className="form" onSubmit={onSubmit}>
                 {mode === 'signup' && (
                     <label>
-                        <span>Name</span>
-                        <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required={mode === 'signup'} />
+                        <span>Username</span>
+                        <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your username" required={mode === 'signup'} />
                     </label>
                 )}
                 <label>

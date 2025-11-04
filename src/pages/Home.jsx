@@ -4,7 +4,7 @@ import { useAutoReveal } from '../hooks/useAutoReveal.js'
 import { usePosts } from '../services/usePosts.js'
 
 export default function Home() {
-	const { posts } = usePosts()
+	const { posts, loading, error } = usePosts()
 	const [query, setQuery] = useState('')
 
 	const filtered = useMemo(() => {
@@ -13,7 +13,8 @@ export default function Home() {
 		return posts.filter(p =>
 			p.title.toLowerCase().includes(q) ||
 			p.tags.join(' ').toLowerCase().includes(q) ||
-			p.summary.toLowerCase().includes(q)
+			p.subtitle.toLowerCase().includes(q) ||
+			(p.author?.username || '').toLowerCase().includes(q)
 		)
 	}, [posts, query])
 
@@ -32,15 +33,18 @@ export default function Home() {
 					className="search"
 				/>
 			</div>
+			{error && <p className="muted" style={{ color: 'crimson' }}>{error.message || 'Failed to load posts'}</p>}
+			{loading && <p className="muted">Loading posts…</p>}
 			<ul className="post-grid">
 				{filtered.map(post => (
 					<li key={post.id} className="post-card" data-reveal>
 						<Link to={`/post/${post.id}`}>
-							{post.coverUrl && (
-								<img src={post.coverUrl} alt="cover" className="cover" />
+							{post.imageUrl && (
+								<img src={post.imageUrl} alt="cover" className="cover" />
 							)}
 							<h3>{post.title}</h3>
-							<p className="muted">{post.summary}</p>
+							<p className="muted">{post.subtitle}</p>
+							{post.author?.username && <p className="muted" style={{ fontSize: 12 }}>By {post.author.username}</p>}
 							<div className="tags">
 								{post.tags.map(t => (
 									<Link key={t} to={`/tag/${encodeURIComponent(t)}`} className="tag">#{t}</Link>
@@ -50,7 +54,7 @@ export default function Home() {
 					</li>
 				))}
 			</ul>
-			{filtered.length === 0 && <p className="muted">No posts yet. Be the first to write!</p>}
+			{!loading && filtered.length === 0 && <p className="muted">No posts yet. Be the first to write!</p>}
 		</section>
 	)
 }

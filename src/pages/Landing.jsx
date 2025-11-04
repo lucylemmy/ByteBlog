@@ -1,7 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Landing() {
+	const { user } = useAuth()
 	return (
 		<section className="landing">
 			<div className="hero">
@@ -17,11 +19,20 @@ export default function Landing() {
 					<span className="accent">ByteBlog</span>
 				</h1>
 				<p className="lead">
-					Write elegant deep-dives, publish tutorials, and showcase the craft behind your code.
+					Write elegant deep-dives, publish tutorials and showcase the craft behind your code.
 				</p>
 				<div className="cta-row">
-					<Link className="btn" to="/signup">Create free account</Link>
-					<Link className="btn secondary" to="/explore">Explore posts</Link>
+					{user ? (
+						<>
+							<Link className="btn" to="/write">Write a post</Link>
+							<Link className="btn secondary" to="/explore">Explore posts</Link>
+						</>
+					) : (
+						<>
+							<Link className="btn" to="/signup">Create free account</Link>
+							<Link className="btn secondary" to="/explore">Explore posts</Link>
+						</>
+					)}
 				</div>
 				<div className="marquee" aria-hidden>
 					<div className="marquee-track">

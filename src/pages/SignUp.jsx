@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 export default function SignUp() {
 	const { signUp, setError } = useAuth()
-	const [name, setName] = useState('')
+const [username, setUsername] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [submitting, setSubmitting] = useState(false)
@@ -17,7 +17,7 @@ export default function SignUp() {
 		setError(null)
 		setSubmitting(true)
 		try {
-			await signUp(name, email, password)
+            await signUp(username.trim(), email.trim(), password)
 			navigate('/')
 		} catch (e) {
 			setErr(e.message || 'Failed to sign up')
@@ -31,8 +31,8 @@ export default function SignUp() {
 			<h1>Create your account</h1>
 			<form className="form" onSubmit={onSubmit}>
 				<label>
-					<span>Name</span>
-					<input value={name} onChange={e => setName(e.target.value)} required />
+                    <span>Username</span>
+                    <input value={username} onChange={e => setUsername(e.target.value)} required />
 				</label>
 				<label>
 					<span>Email</span>

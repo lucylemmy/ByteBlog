@@ -10,7 +10,11 @@ export function setToken(token) {
 }
 
 export async function api(path, options = {}) {
-	const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
+	const headers = { ...(options.headers || {}) }
+	const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+	if (!isFormData && !('Content-Type' in headers)) {
+		headers['Content-Type'] = 'application/json'
+	}
 	const token = getToken()
 	if (token) headers['Authorization'] = `Bearer ${token}`
 	const res = await fetch(`/api${path}`, { ...options, headers })
@@ -20,13 +24,15 @@ export async function api(path, options = {}) {
 }
 
 export async function signIn(email, password) {
-	const { token, user } = await api('/auth/signin', { method: 'POST', body: JSON.stringify({ email, password }) })
+	const body = JSON.stringify({ email, password })
+	const { token, user } = await api('/auth/login', { method: 'POST', body })
 	setToken(token)
 	return user
 }
 
-export async function signUp(name, email, password) {
-	const { token, user } = await api('/auth/signup', { method: 'POST', body: JSON.stringify({ name, email, password }) })
+export async function signUp(username, email, password) {
+	const body = JSON.stringify({ username, email, password })
+	const { token, user } = await api('/auth/signup', { method: 'POST', body })
 	setToken(token)
 	return user
 }
@@ -35,7 +41,12 @@ export async function fetchMe() {
 	return api('/auth/me')
 }
 
-export function signOut() {
+export async function signOut() {
+	try {
+		await api('/auth/logout', { method: 'POST' })
+	} catch (err) {
+		// ignore logout failure, still clear token
+	}
 	setToken(null)
 }
 

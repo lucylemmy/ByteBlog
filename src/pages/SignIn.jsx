@@ -16,7 +16,7 @@ export default function SignIn() {
 		setError(null)
 		setSubmitting(true)
 		try {
-			await signIn(email, password)
+			await signIn(email.trim(), password)
 			navigate('/')
 		} catch (e) {
 			setErr(e.message || 'Failed to sign in')

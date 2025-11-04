@@ -1,40 +1,77 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deletePost, readPostById } from '../services/postStore.js'
+import { deletePost, fetchPost } from '../services/postStore.js'
 import { estimateReadingTime, formatContentToHtml } from '../utils/formatContent.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function PostDetail() {
 	const { id } = useParams()
 	const navigate = useNavigate()
-	const post = readPostById(id)
+	const { user } = useAuth()
+	const [post, setPost] = useState(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState(null)
+	const isAuthor = post && user && post.author?.id === user.id
 
-	if (!post) {
+	useEffect(() => {
+		let active = true
+		setLoading(true)
+		setError(null)
+		fetchPost(id)
+			.then(data => {
+				if (!active) return
+				setPost(data)
+				document.title = `${data.title} · ByteBlog`
+				const meta = document.querySelector('meta[name="description"]')
+				if (meta) meta.setAttribute('content', data.subtitle || data.title)
+			})
+			.catch(err => {
+				if (!active) return
+				setError(err)
+			})
+			.finally(() => {
+				if (active) setLoading(false)
+			})
+		return () => {
+			active = false
+		}
+	}, [id])
+
+	async function onDelete() {
+		if (!post) return
+		if (!confirm('Delete this article?')) return
+		try {
+			await deletePost(post.id)
+			navigate('/')
+		} catch (err) {
+			alert(err.message || 'Failed to delete post')
+		}
+	}
+
+	if (loading) {
 		return (
 			<section>
-				<p className="muted">Post not found.</p>
+				<p className="muted">Loading…</p>
 			</section>
 		)
 	}
 
-	useEffect(() => {
-		document.title = `${post.title} · ByteBlog`
-		const meta = document.querySelector('meta[name="description"]')
-		if (meta) meta.setAttribute('content', post.summary || post.title)
-	}, [post])
-
-	function onDelete() {
-		if (confirm('Delete this article?')) {
-			deletePost(post.id)
-			navigate('/')
-		}
+	if (error || !post) {
+		return (
+			<section>
+				<p className="muted">{error?.message || 'Post not found.'}</p>
+			</section>
+		)
 	}
 
 	return (
 		<article className="post-detail">
-			{post.coverUrl && <img src={post.coverUrl} alt="cover" className="detail-cover" />}
+			{post.imageUrl && <img src={post.imageUrl} alt="cover" className="detail-cover" />}
 			<h1>{post.title}</h1>
+			{post.subtitle && <p className="lead">{post.subtitle}</p>}
 			<p className="muted">
 				{new Date(post.updatedAt || post.createdAt).toLocaleString()} · {estimateReadingTime(post.content)}
+				{post.author?.username && ` · ${post.author.username}`}
 			</p>
 			<div className="tags">
 				{post.tags.map(t => (
@@ -43,9 +80,9 @@ export default function PostDetail() {
 			</div>
 			<div className="content" dangerouslySetInnerHTML={{ __html: formatContentToHtml(post.content) }} />
 			<div className="actions">
-				<Link className="btn" to={`/edit/${post.id}`}>Edit</Link>
+				{isAuthor && <Link className="btn" to={`/edit/${post.id}`}>Edit</Link>}
 				<button className="btn" onClick={() => sharePost(post)}>Share</button>
-				<button className="btn danger" onClick={onDelete}>Delete</button>
+				{isAuthor && <button className="btn danger" onClick={onDelete}>Delete</button>}
 			</div>
 		</article>
 	)
@@ -53,7 +90,7 @@ export default function PostDetail() {
 
 async function sharePost(post) {
 	const url = window.location.href
-	const data = { title: post.title, text: post.summary || post.title, url }
+	const data = { title: post.title, text: post.subtitle || post.title, url }
 	try {
 		if (navigator.share) {
 			await navigator.share(data)

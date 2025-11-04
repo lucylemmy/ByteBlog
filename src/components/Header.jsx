@@ -18,7 +18,7 @@ export default function Header() {
 					<NavLink to="/write">Write</NavLink>
 					{user ? (
 						<>
-							<span className="muted" style={{ marginLeft: 12 }}>Hi, {user.name || user.email}</span>
+							<span className="muted" style={{ marginLeft: 12 }}>Hi, {user.username || user.email}</span>
 							<button className="btn" onClick={signOut} style={{ marginLeft: 12 }}>Sign out</button>
 						</>
 					) : (

@@ -1,57 +1,48 @@
-const STORAGE_KEY = 'byteblog.posts.v1'
+import { api } from './auth.js'
 
-function readAll() {
-	const raw = localStorage.getItem(STORAGE_KEY)
-	if (!raw) return []
-	try {
-		return JSON.parse(raw)
-	} catch {
-		return []
+function normalisePost(post) {
+	return {
+		...post,
+		subtitle: post.subtitle ?? '',
+		tags: Array.isArray(post.tags) ? post.tags : [],
 	}
 }
 
-function writeAll(posts) {
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))
+export async function fetchPosts({ tag } = {}) {
+	const query = tag ? `?tag=${encodeURIComponent(tag)}` : ''
+	const { posts } = await api(`/posts${query}`)
+	return posts.map(normalisePost)
 }
 
-export function seedIfEmpty() {
-	const posts = readAll()
-	if (posts.length) return
-	const sample = [
-		{
-			id: crypto.randomUUID(),
-			title: 'Welcome to ByteBlog',
-			summary: 'A lightweight developer-focused blog built with React + Vite',
-			content:
-				"## Hello, developer!\n\nThis is a demo article. Click Write to publish your own.\n\n- Built with React + Vite\n- LocalStorage persistence\n- Minimal CSS and UX\n\nHappy shipping!",
-			tags: ['react', 'vite', 'demo'],
-			coverUrl: null,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
-		},
-	]
-	writeAll(sample)
+export async function fetchPost(id) {
+	const { post } = await api(`/posts/${id}`)
+	return normalisePost(post)
 }
 
-export function readPosts() {
-	return readAll().sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+export async function createPost(payload) {
+	const body = JSON.stringify({
+		title: payload.title,
+		subtitle: payload.subtitle ?? '',
+		content: payload.content,
+		tags: Array.isArray(payload.tags) ? payload.tags : [],
+		imageUrl: payload.imageUrl || null,
+	})
+	const { post } = await api('/posts', { method: 'POST', body })
+	return normalisePost(post)
 }
 
-export function readPostById(id) {
-	return readAll().find(p => p.id === id)
+export async function updatePost(id, payload) {
+	const body = JSON.stringify({
+		title: payload.title,
+		subtitle: payload.subtitle ?? '',
+		content: payload.content,
+		tags: Array.isArray(payload.tags) ? payload.tags : [],
+		imageUrl: payload.imageUrl ?? null,
+	})
+	const { post } = await api(`/posts/${id}`, { method: 'PUT', body })
+	return normalisePost(post)
 }
 
-export function upsertPost(post) {
-	const posts = readAll()
-	const idx = posts.findIndex(p => p.id === post.id)
-	if (idx >= 0) posts[idx] = { ...posts[idx], ...post }
-	else posts.push(post)
-	writeAll(posts)
+export async function deletePost(id) {
+	await api(`/posts/${id}`, { method: 'DELETE' })
 }
-
-export function deletePost(id) {
-	const next = readAll().filter(p => p.id !== id)
-	writeAll(next)
-}
-
-

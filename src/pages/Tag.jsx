@@ -5,29 +5,30 @@ import { useAutoReveal } from '../hooks/useAutoReveal.js'
 
 export default function Tag() {
 	const { tag } = useParams()
-	const { posts } = usePosts()
-	const filtered = posts.filter(p => p.tags.includes(tag))
+	const { posts, loading, error } = usePosts({ tag })
 
-	useAutoReveal([filtered.length])
+	useAutoReveal([posts.length])
 
 	return (
 		<section>
 			<h1>#{tag}</h1>
-			<p className="muted">{filtered.length} article(s)</p>
+			<p className="muted">{posts.length} article(s)</p>
+			{error && <p className="muted" style={{ color: 'crimson' }}>{error.message || 'Failed to load posts'}</p>}
+			{loading && <p className="muted">Loading…</p>}
 			<ul className="post-grid">
-				{filtered.map(post => (
+				{posts.map(post => (
 					<li key={post.id} className="post-card" data-reveal>
 						<Link to={`/post/${post.id}`}>
-							{post.coverUrl && (
-								<img src={post.coverUrl} alt="cover" className="cover" />
+							{post.imageUrl && (
+								<img src={post.imageUrl} alt="cover" className="cover" />
 							)}
 							<h3>{post.title}</h3>
-							<p className="muted">{post.summary}</p>
+							<p className="muted">{post.subtitle}</p>
 						</Link>
 					</li>
 				))}
 			</ul>
-			{filtered.length === 0 && <p className="muted">Nothing here yet.</p>}
+			{!loading && posts.length === 0 && <p className="muted">Nothing here yet.</p>}
 		</section>
 	)
 }
