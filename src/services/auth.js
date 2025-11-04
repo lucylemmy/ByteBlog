@@ -1,5 +1,17 @@
 const TOKEN_KEY = 'byteblog.auth.token'
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const configuredBaseUrl = rawBaseUrl ? rawBaseUrl.replace(/\/+$/, '') : ''
+const DEFAULT_BASE_URL = '/api'
+
+export function resolveApiUrl(path) {
+	const normalizedPath = path.startsWith('/') ? path : `/${path}`
+	const base = configuredBaseUrl || DEFAULT_BASE_URL
+	const sanitizedBase = base.endsWith('/') ? base.replace(/\/+$/, '') : base
+	if (!sanitizedBase || sanitizedBase === '/') return normalizedPath
+	return `${sanitizedBase}${normalizedPath}`
+}
+
 export function getToken() {
 	return localStorage.getItem(TOKEN_KEY)
 }
@@ -17,7 +29,7 @@ export async function api(path, options = {}) {
 	}
 	const token = getToken()
 	if (token) headers['Authorization'] = `Bearer ${token}`
-	const res = await fetch(`/api${path}`, { ...options, headers })
+	const res = await fetch(resolveApiUrl(path), { ...options, headers })
 	const data = await res.json().catch(() => ({}))
 	if (!res.ok) throw new Error(data?.error || 'Request failed')
 	return data
