@@ -16,9 +16,12 @@ body{
 	color:var(--text);
 }
 
-.container{width:min(1100px,92vw);margin:0 auto;padding:24px}
+.container{width:min(1100px,92vw);
+	margin:0 auto;
+	padding:24px}
 
-.header{background:transparent;border-bottom:1px solid rgba(255,255,255,.06);
+.header{background:transparent;
+	border-bottom:1px solid rgba(255,255,255,.06);
 position:sticky;
 top:0;
 backdrop-filter:saturate(150%) blur(8px)}
@@ -193,7 +196,9 @@ backdrop-filter:saturate(150%) blur(8px)}
 	padding:2px 6px;
 	border-radius:6px}
 
-.editor{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.editor{display:grid;
+	grid-template-columns:1fr 1fr;
+	gap:14px}
 .editor-pane{display:flex;
 	flex-direction:column;
 	gap:8px}
