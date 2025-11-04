@@ -2,10 +2,10 @@ services:
   - type: web
     name: byteblog-api
     env: node
-    rootDir: server
+    rootDir:
     plan: free
     buildCommand: npm install
-    startCommand: node index.js
+    startCommand: npm run server
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
